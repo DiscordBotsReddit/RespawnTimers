@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Literal, Optional
 
 import aiohttp
@@ -68,7 +68,7 @@ class BossPanelButton(discord.ui.Button):
         self.style = discord.ButtonStyle.danger
 
     async def callback(self, interaction: discord.Interaction):
-        boss_kill_timestamp = int((datetime.now(tz=UTC) - datetime(1970, 1, 1, tzinfo=UTC)).total_seconds())
+        boss_kill_timestamp = int((datetime.now(tz=timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds())
         await interaction.response.defer(thinking=True)
 
         def wait_for_check(m: discord.Message):
@@ -76,7 +76,7 @@ class BossPanelButton(discord.ui.Button):
                 return True
             
         try:
-            unix_timestamp = int((datetime.now(tz=UTC) - datetime(1970, 1, 1, tzinfo=UTC)).total_seconds())
+            unix_timestamp = int((datetime.now(tz=timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds())
             time_out = 60
             time_to_respond = unix_timestamp+time_out
             how_long_msg = await interaction.channel.send(content=f"{interaction.user.mention}, how long ago did you kill the boss?\nSend `0s` if you want to use right now, or let timer run out to use the time you pressed the button.\n\n**This interaction times out <t:{time_to_respond}:R>.**")
@@ -115,7 +115,7 @@ class BossPanelButton(discord.ui.Button):
             msg = await interaction.edit_original_response(content=f"{interaction.user.mention} started the respawn timer for `{boss_name}`.\nNext notification <t:{ping_before}:R>.")
         else:
             msg = await interaction.edit_original_response(content=f"{interaction.user.mention} started the respawn timer for `{boss_name}` with a time ago amount of `{ago_msg}`.\nNext notification <t:{ping_before}:R>.")
-        unix_timestamp = int((datetime.now(tz=UTC) - datetime(1970, 1, 1, tzinfo=UTC)).total_seconds())
+        unix_timestamp = int((datetime.now(tz=timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds())
         sleep_time = ping_before - unix_timestamp
         if sleep_time < 0:
             sleep_time = abs(sleep_time)
@@ -164,7 +164,7 @@ class NewBossBtns(discord.ui.View):
                 boss_id = results[0][0]  # type: ignore
                 respawn = results[0][1]  # type: ignore
                 ping_before = results[0][2]  # type: ignore
-                unix_timestamp = int((datetime.now(tz=UTC) - datetime(1970, 1, 1, tzinfo=UTC)).total_seconds())
+                unix_timestamp = int((datetime.now(tz=timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds())
                 respawn = int(unix_timestamp + respawn)
                 ping_before = int(respawn - ping_before)
                 await db.execute_insert("INSERT INTO current_timers (respawns_at,time_to_ping,boss_id,guild_id) VALUES(?,?,?,?);", (respawn, ping_before, boss_id, interaction.guild_id))
@@ -183,7 +183,7 @@ async def boss_name_autocomplete(interaction: discord.Interaction, current: str)
 
 @tasks.loop(seconds=1)
 async def check_if_time_to_ping():
-    unix_timestamp = int((datetime.now(tz=UTC) - datetime(1970, 1, 1, tzinfo=UTC)).total_seconds())
+    unix_timestamp = int((datetime.now(tz=timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds())
     async with aiosqlite.connect(DATABASE) as db:
         things_to_ping = await db.execute_fetchall("SELECT boss_id,guild_id,respawns_at,ping_sent,id FROM current_timers WHERE time_to_ping<=?;", (unix_timestamp,))
     if len(things_to_ping) > 0:
@@ -312,7 +312,7 @@ async def start_boss_timer(interaction: discord.Interaction, name: str, ago: Opt
         boss_id = results[0][0]  # type: ignore
         respawn = results[0][1]  # type: ignore
         ping_before = results[0][2]  # type: ignore
-        unix_timestamp = int((datetime.now(tz=UTC) - datetime(1970, 1, 1, tzinfo=UTC)).total_seconds())
+        unix_timestamp = int((datetime.now(tz=timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds())
         respawn = int(unix_timestamp + respawn)
         ping_before = int(respawn - ping_before)
         if ago is not None:
